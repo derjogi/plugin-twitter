@@ -15,6 +15,7 @@ import {
   type Tweet,
 } from "./client/index";
 import { TwitterInteractionPayload } from "./types";
+import { TIMELINE_TYPE } from "./timeline";
 
 interface TwitterUser {
   id_str: string;
@@ -675,7 +676,11 @@ export class ClientBase {
       }
     }
 
-    const timeline = await this.fetchHomeTimeline(cachedTimeline ? 10 : 50);
+    const following =
+      (this.state?.TWITTER_TIMELINE_MODE ||
+       this.runtime.getSetting("TWITTER_TIMELINE_MODE"))
+      === TIMELINE_TYPE.Following;
+    const timeline = await this.fetchHomeTimeline(cachedTimeline ? 10 : following ? 20 : 50, following);
     const username = this.runtime.getSetting("TWITTER_USERNAME");
 
     // Get the most recent 20 mentions and interactions

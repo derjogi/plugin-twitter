@@ -17,6 +17,7 @@ export const twitterEnvSchema = z.object({
   TWITTER_RETRY_LIMIT: z.number().int(),
   TWITTER_POLL_INTERVAL: z.number().int(),
   TWITTER_TARGET_USERS: z.string().default(""),
+  TWITTER_TIMELINE_MODE: z.string().refine(val => !val || val === 'following' || val === 'foryou', 'Timeline mode must be either "following", "foryou", or empty'),
   TWITTER_ENABLE_POST_GENERATION: z.boolean(),
   TWITTER_POST_INTERVAL_MIN: z.number().int(),
   TWITTER_POST_INTERVAL_MAX: z.number().int(),
@@ -127,6 +128,12 @@ export async function validateTwitterConfig(
       TWITTER_TARGET_USERS:
         runtime.getSetting("TWITTER_TARGET_USERS") ||
         process.env.TWITTER_TARGET_USERS ||
+        "",
+      
+      //string - 'following' or 'foryou' (or empty => default to 'foryou')
+      TWITTER_TIMELINE_MODE:
+        runtime.getSetting("TWITTER_TIMELINE_MODE") ||
+        process.env.TWITTER_TIMELINE_MODE ||
         "",
 
       // bool

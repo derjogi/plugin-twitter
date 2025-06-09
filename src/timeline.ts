@@ -21,7 +21,7 @@ import {
 import { sendTweet, parseActionResponseFromText } from "./utils";
 import { ActionResponse } from "./types";
 
-enum TIMELINE_TYPE {
+export enum TIMELINE_TYPE {
   ForYou = "foryou",
   Following = "following",
 }
