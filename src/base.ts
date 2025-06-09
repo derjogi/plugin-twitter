@@ -246,7 +246,7 @@ export class ClientBase {
       conversationId: raw.conversationId ?? raw.legacy?.conversation_id_str,
       hashtags: raw.hashtags ?? raw.legacy?.entities?.hashtags ?? [],
       html: raw.html,
-      id: raw.id ?? raw.rest_id ?? raw.legacy.id_str ?? raw.id_str ?? undefined,
+      id: raw.id ?? raw.rest_id ?? raw.legacy?.id_str ?? raw.id_str ?? undefined,
       inReplyToStatus: raw.inReplyToStatus,
       inReplyToStatusId:
         raw.inReplyToStatusId ??
@@ -274,7 +274,7 @@ export class ClientBase {
         (raw.legacy?.entities?.media
           ?.filter((media: any) => media.type === "photo")
           .map((media: any) => ({
-            id: media.id_str || media.rest_id || media.legacy.id_str,
+            id: media.id_str || media.rest_id || media.legacy?.id_str,
             url: media.media_url_https,
             alt_text: media.alt_text,
           })) ||
@@ -299,7 +299,7 @@ export class ClientBase {
       timestamp:
         raw.timestamp ??
         (raw.legacy?.created_at
-          ? new Date(raw.legacy.created_at).getTime() / 1000
+          ? new Date(raw.legacy?.created_at).getTime() / 1000
           : undefined),
       urls: raw.urls ?? raw.legacy?.entities?.urls ?? [],
       userId: raw.userId ?? raw.legacy?.user_id_str ?? undefined,
@@ -313,7 +313,7 @@ export class ClientBase {
           (media: any) => media.type === "video"
         ) ??
         [],
-      views: raw.views?.count ? Number(raw.views.count) : 0,
+      views: raw.views?.count ? Number(raw.views?.count) : 0,
       sensitiveContent: raw.sensitiveContent,
     };
 
