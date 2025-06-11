@@ -68,34 +68,69 @@ export class TwitterTimelineClient {
         ? await this.twitterClient.fetchFollowingTimeline(count, [])
         : await this.twitterClient.fetchHomeTimeline(count, []);
 
+    function getValue<T = any>(primary: any, fallback: any, path: string): T | undefined {
+       const pathParts = path.split('.');
+     
+       for (const obj of [primary, fallback]) {
+         if (obj == null) continue;
+     
+         let current = obj;
+         let isValid = true;
+     
+         for (const part of pathParts) {
+           if (current == null || typeof current !== 'object') {
+             isValid = false;
+             break;
+           }
+     
+           current = current[part];
+         }
+     
+         if (isValid && current != null) {
+           return current as T;
+         }
+       }
+     
+       return undefined;
+    }
+    
     return homeTimeline
-      .map((tweet) => ({
-        id: tweet.rest_id,
-        name: tweet.core?.user_results?.result?.legacy?.name,
-        username: tweet.core?.user_results?.result?.legacy?.screen_name,
-        text: tweet.legacy?.full_text,
-        inReplyToStatusId: tweet.legacy?.in_reply_to_status_id_str,
-        timestamp: new Date(tweet.legacy?.created_at).getTime() / 1000,
-        userId: tweet.legacy?.user_id_str,
-        conversationId: tweet.legacy?.conversation_id_str,
-        permanentUrl: `https://twitter.com/${tweet.core?.user_results?.result?.legacy?.screen_name}/status/${tweet.rest_id}`,
-        hashtags: tweet.legacy?.entities?.hashtags || [],
-        mentions: tweet.legacy?.entities?.user_mentions || [],
-        photos:
-          tweet.legacy?.entities?.media
+      .map((_tweet) => {
+        // First, check whether the tweet is nested within another top-level 'tweet' (which it appears is sometimes(?) the case):
+        let tweet = _tweet.tweet || _tweet;
+        // If the tweet is a retweet, get the original tweet, that often has a more complete text:
+        const orig = tweet.legacy?.retweeted_status_result?.result;
+        const timelineTweet = {
+          id: getValue(tweet, orig, "rest_id"),
+          name: getValue(tweet, orig, "core.user_results.result.legacy.name"),
+          username: getValue(tweet, orig, "core.user_results.result.legacy.screen_name"),
+          text: getValue(orig, tweet, "legacy.full_text"),
+          inReplyToStatusId: getValue(tweet, orig, "legacy.in_reply_to_status_id_str"),
+          timestamp: new Date(getValue(tweet, orig, "legacy.created_at")).getTime() / 1000,
+          userId: getValue(tweet, orig, "legacy.user_id_str"),
+          conversationId: getValue(tweet, orig, "legacy.conversation_id_str"),
+          permanentUrl: `https://twitter.com/${getValue(tweet, orig, "core.user_results.result.legacy.screen_name")}/status/${getValue(tweet, orig, "rest_id")}`,
+          hashtags: getValue(tweet, orig, "legacy.entities.hashtags") || [],
+          mentions: getValue(tweet, orig, "legacy.entities.user_mentions") || [],
+          photos: getValue(tweet, orig, "legacy.entities.media")
             ?.filter((media) => media.type === "photo")
             .map((media) => ({
               id: media.id_str,
               url: media.media_url_https, // Store media_url_https as url
               alt_text: media.alt_text,
             })) || [],
-        thread: tweet.thread || [],
-        urls: tweet.legacy?.entities?.urls || [],
-        videos:
-          tweet.legacy?.entities?.media?.filter(
+          thread: getValue(tweet, orig, "thread") || [],
+          urls: getValue(tweet, orig, "legacy.entities.urls") || [],
+          videos: getValue(tweet, orig, "legacy.entities.media")?.filter(
             (media) => media.type === "video"
           ) || [],
-      }))
+        }
+        if (!timelineTweet.id || !timelineTweet.name || !timelineTweet.username) {
+          logger.debug("Missing tweet data:", timelineTweet);
+          logger.debug("Original tweet data:", tweet);
+        }
+        return timelineTweet;
+      })
       .filter((tweet) => tweet.username !== twitterUsername); // do not perform action on self-tweets
   }
 
