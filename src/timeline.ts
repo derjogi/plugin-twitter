@@ -125,23 +125,32 @@ export class TwitterTimelineClient {
   }
 
   async handleTimeline() {
-    console.log("Start Hanldeling Twitter Timeline");
+    console.log("Start Handling Twitter Timeline");
 
     const tweets = await this.getTimeline(20);
-    const maxActionsPerCycle = 20;
+    const maxActionsPerCycle = this.state?.TWITTER_MAX_ACTIONS_BATCH_SIZE
+      || this.runtime.getSetting("TWITTER_MAX_ACTIONS_BATCH_SIZE")
+      || 20;
     const tweetDecisions = [];
+    let count = 0;
+
     for (const tweet of tweets) {
       try {
         const tweetId = this.createTweetId(this.runtime, tweet);
         // Skip if we've already processed this tweet
         const memory = await this.runtime.getMemoryById(tweetId);
         if (memory) {
-          console.log(`Already processed tweet ID: ${tweet.id}`);
+          logger.log(`Already processed tweet ID: ${tweet.id}`);
           continue;
         }
-
-        const roomId = createUniqueUuid(this.runtime, tweet.conversationId);
-
+        count++;
+        if (count > maxActionsPerCycle) {
+          // Count in getTimeline(#) sometimes doesn't seem to have an effect and it might retrieve more than we want.
+          // Stop processing if we've reached the max number of tweets to process.
+          break;
+        }
+        logger.debug(`Processing tweet #${count} of ${Math.min(tweets.length, maxActionsPerCycle)})`);
+        
         const message = this.formMessage(this.runtime, tweet);
 
         let state = await this.runtime.composeState(message);
@@ -179,7 +188,7 @@ Choose any combination of [LIKE], [RETWEET], [QUOTE], and [REPLY] that are appro
           tweet: tweet,
           actionResponse: actions,
           tweetState: state,
-          roomId: roomId,
+          roomId: message.roomId,
         });
       } catch (error) {
         logger.error(`Error processing tweet ${tweet.id}:`, error);

@@ -262,6 +262,13 @@
         "required": false,
         "default": 120,
         "sensitive": false
+      },
+      "TWITTER_MAX_ACTIONS_BATCH_SIZE": {
+        "type": "number",
+        "description": "Maximum number of tweets to process and possibly interact with in a single batch.",
+        "required": false,
+        "default": 20,
+        "sensitive": false
       }
     }
   }
